@@ -1,5 +1,5 @@
 
-local dh=require"dhcpdp"
-dh.new("/home/ard/dhcpl/dhcpd.leases")
+local dhcpdp=require"dhcpdp"
+local dh=assert(dhcpdp.new("/home/ard/dhcpl/dhcpd.leases"))
 
-dh.poll()
+dh:poll()
