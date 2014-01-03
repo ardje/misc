@@ -7,9 +7,10 @@ poll -> check leases file for changes
 lookups -> query current structs
 close -> stop it.
 ]]
-function m.new(filename)
+function m.new(filename,time)
 	local parser={}
 	parser.filename=filename
+	parser.time=time or os.time
 	parser.ip={} -- ip -> lease
 	parser.mac={} -- mac -> ip
 	setmetatable(parser,{ __index=m })
@@ -56,9 +57,31 @@ function m:poll()
 					lease.state=state
 					goto nextleaseline
 				end
+				ends=line:match("^  ends (never);")
+				if ends
+				then
+					-- BOOTP lease. You don't want that
+					lease.ends=ends
+					goto nextleaseline
+				end
+				year,month,day,hour,minute,sec=line:match("^  ends %d (%d%d%d%d)/(%d%d)/(%d%d) (%d%d):(%d%d):(%d%d);")
+				if year and month and day and hour and minute and sec
+				then
+					-- Normal ends
+					lease.ends=os.time{year=year,month=month,day=day,hour=hour,minute=minute,sec=sec}
+					if lease.ends < self.time()
+					then
+						-- expired leases, skip check
+						-- print ("expired lease", lease.ends,self.time())
+						--print ("lease", year,month,day,hour,minute,sec)
+						lease.ends=nil
+					end
+					--print ("lease ends:",lease.ends)
+					goto nextleaseline
+				end
 				::nextleaseline::
 			end
-			if lease.ip and lease.mac and lease.state
+			if lease.ip and lease.mac and lease.state and lease.ends
 			then
 				local byip,bymac
 				byip=self:lookupbyip(lease.ip)
@@ -105,17 +128,34 @@ end
 function m:lookupbyip(ip)
 	return self.ip[ip]
 end
+function m:checkmacip(mac,ip)
+	return self.mac[mac] and self.mac[mac][ip]
+end
 function m:lookupbymac(mac)
 	local ip=self.mac[mac]
-	return ip and self.ip[ip]
+	return ip
 end
 function m:updatelease(lease)
 	local ip=lease.ip
-	if self.ip[ip]
+	local olease=self.ip[ip]
+	if olease ~= nil
 	then
+		if olease.mac ~= lease.mac
+		then
+			-- Remove old mac entry
+			self.mac[olease.mac][ip]=nil
+		end
+		for k,v in pairs(lease)	do
+			olease[k]=v
+		end
 	else
 		self.ip[ip]=lease
-		self.mac[lease.mac]=ip
+	end
+	if self.mac[lease.mac]
+	then
+		self.mac[lease.mac][ip]=1
+	else
+		self.mac[lease.mac]={ [ip]=1 }
 	end
 end
 function m:close()
