@@ -24,6 +24,11 @@ function m.new(filename,time)
 	end
 		
 end
+--[[
+function m:printlease(lease)
+	(lease.ip,lease.mac,lease.state)
+end
+-- ]]
 function m:poll()
 	self.f:seek("set",self.offset);
 	while 1==1 do
@@ -86,9 +91,9 @@ function m:poll()
 				local byip,bymac
 				byip=self:lookupbyip(lease.ip)
 				bymac=self:lookupbymac(lease.mac)
-				if byip and bymac and byip == bymac
+				if byip and bymac and bymac[lease.ip]==1
 				then
-					print "Updating existing lease"
+					print ("Updating existing lease",lease.ip,lease.mac,lease.state)
 					if byip.state ~= lease.state
 					then
 						if lease.state=="active"
@@ -107,12 +112,16 @@ function m:poll()
 						-- perform callbacks here
 						print("starting lease:",lease.ip,lease.mac,lease.state)
 					end
-				elseif bymac and bymac.state=="active"
+				elseif bymac
 				then
-					-- We should bail out. Not supported
-					print "Weird: mac got other ip"
-					print("lease:",lease.ip,lease.mac,lease.state)
-					print("bymac:",bymac.ip,bymac.mac,bymac.state)
+					-- Mac get's a second or third ip
+					-- By spec a mac can have multiple ip addresses assigned
+					-- We don't want that, but we have to cope with it :-(
+					print "Mac already got an ip assigned"
+					print("New lease:",lease.ip,lease.mac,lease.state)
+					for k,v in pairs(bymac) do
+						print("ip: ",k)
+					end
 				elseif byip and bymac==nil
 				then
 					print "IP handed out to other mac"
