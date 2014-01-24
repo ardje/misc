@@ -93,7 +93,7 @@ function m:poll()
 				bymac=self:lookupbymac(lease.mac)
 				if byip and bymac and bymac[lease.ip]==1
 				then
-					print ("Updating existing lease",lease.ip,lease.mac,lease.state)
+					-- print ("Updating existing lease",lease.ip,lease.mac,lease.state)
 					if byip.state ~= lease.state
 					then
 						if lease.state=="active"
@@ -104,24 +104,26 @@ function m:poll()
 							-- perform callbacks here
 							print("ending lease:",lease.ip,lease.mac,lease.state)
 						end
+					else
+						print("resuming lease:",lease.ip,lease.mac,lease.state)
 					end
 				elseif byip == nil and bymac == nil
 				then
 					if lease.state=="active"
 					then
 						-- perform callbacks here
-						print("starting lease:",lease.ip,lease.mac,lease.state)
+						print("starting new lease:",lease.ip,lease.mac,lease.state)
 					end
 				elseif bymac
 				then
 					-- Mac get's a second or third ip
 					-- By spec a mac can have multiple ip addresses assigned
 					-- We don't want that, but we have to cope with it :-(
-					print "Mac already got an ip assigned"
-					print("New lease:",lease.ip,lease.mac,lease.state)
+					io.write(string.format("Starting extra lease: %s %s %s , existing: ",lease.ip,lease.mac,lease.state))
 					for k,v in pairs(bymac) do
-						print("ip: ",k)
+						io.write(" ",k)
 					end
+					io.write("\n")
 				elseif byip and bymac==nil
 				then
 					print "IP handed out to other mac"
