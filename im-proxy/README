@@ -1,0 +1,39 @@
+im-proxy for lack of a better name for now.
+Instant Messaging Proxy.
+
+Current implementations of app-to-app communications between a mobile device
+and the internet side of apps consist of a lingering tcp connection per app per
+provider.
+I've been working on this idea years ago and then google came with cloud
+messaging. That did not what I intended to do, so I am rewriting this, and
+maybe implement it some time in the future.
+
+The global working is this: a mobile app logs into the cloud app (internet site, whatever), and negotiates to make use of the proxy.
+The mobile has registered with the proxy, and registers a hash with that proxy.
+The cloud app registers with that proxy with the same hash.
+The mobile device communication with the proxy is udp based and optimized as
+much as possible.
+The cloud app can communicate with whatever is normal on http based systems.
+When the cloud app wants to get the attention of the app on the mobile device,
+it sends a message to the proxy addressed to the hash, and an encrypted piece
+of short message.
+The proxy will pass the blob to the mobile device, which will pass the blob to
+the app.
+The proxy will have 2 addresses for mobile registration: 1 for 3g connections,
+and one for hopping between wifi networks.
+It is the proxys task to keep track of the mobile device's ip, not of the cloud
+app.
+
+So we have in total this:
+mobile device (MD)
+mobile app (MA)
+Proxy Agent on mobile device (PA)
+Message Proxy on the interwebs (MP)
+cloud app (CA)
+
+The MA will login to the CA, and negotiate the use of a MP. The PA on the
+MD will probably already have registered with an MP.
+The MA will request the PA to register with the MP. The PA will register an
+extra message hash with the MP, and the CA will register with the MP.
+
+The PA will refresh its registration with the MP on regular intervals, short enough keep any NAT open.
